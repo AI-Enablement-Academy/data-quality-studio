@@ -47,13 +47,19 @@
 - `src/components/diagnostics/*`
   - shared product UI, assessment flow, and results rendering
 
+## Current test coverage
+- domain tests for scoring, evidence parsing, and deterministic chat
+- live Playwright validation on the Vercel deployment for DMM and DRL public flows
+
 ## Validation commands
 - `pnpm test`
 - `pnpm lint`
 - `pnpm build`
+- manual Playwright CLI pass against `https://data-maturity-studio.vercel.app`
 
 ## Deployment
 - Deploy on Vercel
 - Set `GROQ_API_KEY` and `GROQ_MODEL` in project environment variables
 - The server route is responsible for Groq requests so the key never reaches the client
 - If Groq rate-limits, the UI shows a countdown and keeps deterministic chat available
+- Production URL: `https://data-maturity-studio.vercel.app`
