@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageShell } from "@/components/diagnostics/chrome";
+import { RecentReports } from "@/components/diagnostics/recent-reports";
 
 export default function DMMPage() {
   return (
@@ -42,6 +43,8 @@ export default function DMMPage() {
           </p>
         </aside>
       </div>
+
+      <RecentReports productType="dmm" />
     </PageShell>
   );
 }

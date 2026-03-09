@@ -4,6 +4,8 @@
   --background: #eef2f7;
   --foreground: #0f172a;
   --muted: #475569;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-border: rgba(255, 255, 255, 0.58);
 }
 
 @theme inline {
@@ -18,13 +20,75 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  background:
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.12), transparent 26%),
+    radial-gradient(circle at 85% 12%, rgba(56, 189, 248, 0.14), transparent 22%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 body {
-  background: var(--background);
+  background: transparent;
   color: var(--foreground);
   font-family: var(--font-sora), sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, black, transparent 88%);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(245, 158, 11, 0.95);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.16);
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
 }
 
 ::selection {

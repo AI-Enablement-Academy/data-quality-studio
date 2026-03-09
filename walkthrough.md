@@ -42,20 +42,24 @@
   - browser-only report assistant fallback
 - `src/lib/diagnostics/storage.ts`
   - browser-local draft and result persistence
+- `src/lib/diagnostics/chat-guard.ts`
+  - request validation and best-effort chat throttling
 - `src/app/api/chat/route.ts`
   - server-side Groq proxy using env-backed secrets only
 - `src/components/diagnostics/*`
-  - shared product UI, assessment flow, and results rendering
+  - shared product UI, assessment flow, motion shell, charts, and results rendering
 
 ## Current test coverage
 - domain tests for scoring, evidence parsing, and deterministic chat
 - live Playwright validation on the Vercel deployment for DMM and DRL public flows
+- local browser validation for charts, focus handling, semantic state, and console cleanliness
 - source-alignment pass against the October 2025 white paper for Ten Root Conditions, DRL 1-7 language, and DPM / TDQM framing
 
 ## Validation commands
 - `pnpm test`
 - `pnpm lint`
 - `pnpm build`
+- local browser pass on `http://localhost:3000`
 - manual Playwright CLI pass against `https://data-maturity-studio.vercel.app`
 
 ## Deployment

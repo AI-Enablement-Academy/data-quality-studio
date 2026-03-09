@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageShell } from "@/components/diagnostics/chrome";
+import { RecentReports } from "@/components/diagnostics/recent-reports";
 import { productConfigs } from "@/lib/diagnostics/product-config";
 
 export default function HomePage() {
@@ -15,6 +16,7 @@ export default function HomePage() {
           <article
             key={config.productType}
             className="rounded-[2rem] border border-white/50 bg-white/90 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
+            data-reveal="card"
           >
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
               {config.shortTitle}
@@ -39,6 +41,8 @@ export default function HomePage() {
           </article>
         ))}
       </div>
+
+      <RecentReports />
     </PageShell>
   );
 }

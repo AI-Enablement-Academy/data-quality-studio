@@ -172,3 +172,14 @@ export interface AssessmentSession {
   confidence: ResultModel["confidence"];
   resultModel: ResultModel;
 }
+
+export interface SavedReportSummary {
+  id: string;
+  productType: ProductType;
+  scopeType: ScopeType;
+  useCaseKey: UseCaseKey | null;
+  completedAt: string;
+  drlBand: DRLBand;
+  summaryCard: string;
+  topBlockerTitles: string[];
+}

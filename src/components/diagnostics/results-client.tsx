@@ -5,12 +5,21 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { AssistantChat } from "@/components/diagnostics/assistant-chat";
+import { ReportCharts } from "@/components/diagnostics/report-charts";
 import { productConfigs } from "@/lib/diagnostics/product-config";
-import { loadResultSnapshot, parseResultSnapshot } from "@/lib/diagnostics/storage";
+import { decodeSharedSession, encodeSharedSession } from "@/lib/diagnostics/share";
+import { loadReportById, loadResultSnapshot, parseResultSnapshot } from "@/lib/diagnostics/storage";
 import { trackEvent } from "@/lib/diagnostics/tracking";
 import { AssessmentSession, ProductType, RootConditionScore } from "@/lib/diagnostics/types";
 
-function readStoredSessionSnapshot(productType: ProductType, source: string | null) {
+function readStoredSessionSnapshot(productType: ProductType, source: string | null, reportId: string | null) {
+  if (reportId) {
+    const savedReport = loadReportById(reportId);
+    if (savedReport) {
+      return JSON.stringify(savedReport);
+    }
+  }
+
   const nextSnapshot = loadResultSnapshot(productType);
   if (!nextSnapshot && productType === "drl" && source === "dmm") {
     return loadResultSnapshot("dmm");
@@ -51,7 +60,7 @@ function buildCopySummary(session: AssessmentSession) {
 
 function BlockerCard({ blocker }: { blocker: RootConditionScore }) {
   return (
-    <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+    <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5" data-reveal="card">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Top blocker</p>
       <h3 className="mt-3 text-lg font-semibold text-slate-950">{blocker.title}</h3>
       <div className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${severityTone(blocker.score)}`}>
@@ -65,8 +74,11 @@ function BlockerCard({ blocker }: { blocker: RootConditionScore }) {
 export function ResultsClient({ productType }: { productType: ProductType }) {
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
+  const [liveMessage, setLiveMessage] = useState("");
   const config = productConfigs[productType];
   const source = searchParams.get("source");
+  const reportId = searchParams.get("reportId");
+  const shareToken = searchParams.get("share");
   const sessionSnapshot = useSyncExternalStore(
     (onStoreChange) => {
       if (typeof window === "undefined") {
@@ -87,16 +99,20 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
       window.addEventListener("storage", handleStorage);
       return () => window.removeEventListener("storage", handleStorage);
     },
-    () => readStoredSessionSnapshot(productType, source),
+    () => readStoredSessionSnapshot(productType, source, reportId),
     () => null,
   );
   const session = useMemo<AssessmentSession | null>(() => {
+    if (shareToken) {
+      return decodeSharedSession(shareToken);
+    }
+
     if (!sessionSnapshot) {
       return null;
     }
 
     return parseResultSnapshot(sessionSnapshot);
-  }, [sessionSnapshot]);
+  }, [sessionSnapshot, shareToken]);
 
   if (!session) {
     return (
@@ -120,30 +136,59 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
   async function handleCopySummary() {
     await navigator.clipboard.writeText(buildCopySummary(activeSession));
     setCopied(true);
+    setLiveMessage("Summary copied to clipboard.");
     trackEvent("report_copied", { productType, drlBand: activeSession.drlBand });
-    window.setTimeout(() => setCopied(false), 1800);
+    window.setTimeout(() => {
+      setCopied(false);
+      setLiveMessage("");
+    }, 1800);
   }
 
   function handleExportJson() {
     downloadJson(activeSession, productType);
+    setLiveMessage("JSON report downloaded.");
     trackEvent("report_exported", { productType, format: "json", drlBand: activeSession.drlBand });
   }
 
   function handlePrint() {
     window.print();
+    setLiveMessage("Print dialog opened.");
     trackEvent("report_exported", { productType, format: "print", drlBand: activeSession.drlBand });
+  }
+
+  async function handleCopyShareLink() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("reportId");
+    url.searchParams.set("share", encodeSharedSession(activeSession));
+    await navigator.clipboard.writeText(url.toString());
+    setCopied(false);
+    setLiveMessage("Share link copied to clipboard.");
+    trackEvent("report_exported", { productType, format: "share-link", drlBand: activeSession.drlBand });
   }
 
   return (
     <div className="space-y-6" id="diagnostic-report">
+      <div aria-live="polite" className="sr-only">
+        {liveMessage}
+      </div>
+      {shareToken ? (
+        <section className="rounded-[1.5rem] border border-sky-200 bg-sky-50 px-5 py-4 text-sm leading-7 text-sky-950">
+          You are viewing a portable shared report snapshot. It includes the report output only, not private browser drafts or raw evidence files.
+        </section>
+      ) : null}
       <section className="grid gap-4 lg:grid-cols-3">
         {activeSession.resultModel.topBlockers.map((blocker) => (
           <BlockerCard key={blocker.key} blocker={blocker} />
         ))}
       </section>
 
+      <ReportCharts session={activeSession} />
+
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_360px]">
-        <div className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+        <div
+          className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
+          data-reveal="card"
+        >
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Root-cause heatmap</p>
@@ -162,7 +207,7 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
                 <h3 className="mt-3 text-base font-semibold text-slate-950">{item.title}</h3>
                 <p className="mt-2 text-sm leading-7 text-slate-600">{item.explanation}</p>
                 {item.contributingQuestions.length > 0 ? (
-                  <p className="mt-3 text-xs uppercase tracking-[0.16em] text-slate-400">
+                  <p className="mt-3 text-xs uppercase tracking-[0.16em] text-slate-500">
                     Driven by {item.contributingQuestions.join(", ")}
                   </p>
                 ) : null}
@@ -172,7 +217,10 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
         </div>
 
         <aside className="space-y-6">
-          <div className="rounded-[2rem] border border-white/50 bg-slate-950 p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
+          <div
+            className="rounded-[2rem] border border-white/50 bg-slate-950 p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.14)]"
+            data-reveal="card"
+          >
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300">Likely band</p>
             <h2 className="mt-3 text-4xl font-semibold">{activeSession.resultModel.drlBand}</h2>
             <p className="mt-4 text-sm leading-7 text-slate-200">{activeSession.resultModel.drlRationale.summary}</p>
@@ -182,7 +230,10 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+          <div
+            className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
+            data-reveal="card"
+          >
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Gap to DRL 7</p>
             <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-700">
               {activeSession.resultModel.gapToDRL7.map((item) => (
@@ -196,7 +247,10 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+        <div
+          className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
+          data-reveal="card"
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Action plan</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">What to do next</h2>
           <div className="mt-6 space-y-4">
@@ -206,11 +260,11 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
                 <p className="mt-3 text-sm leading-7 text-slate-600">{item.summary}</p>
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
                   <div className="rounded-[1.25rem] bg-white px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">30-day move</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">30-day move</p>
                     <p className="mt-2 text-sm leading-7 text-slate-700">{item.thirtyDayMove}</p>
                   </div>
                   <div className="rounded-[1.25rem] bg-white px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">6-week pilot</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">6-week pilot</p>
                     <p className="mt-2 text-sm leading-7 text-slate-700">{item.sixWeekPilotMove}</p>
                   </div>
                 </div>
@@ -220,7 +274,10 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
         </div>
 
         <aside className="space-y-6">
-          <div className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+          <div
+            className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
+            data-reveal="card"
+          >
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Export / share</p>
             <div className="mt-5 flex flex-col gap-3">
               <button
@@ -244,10 +301,20 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
               >
                 {copied ? "Summary copied" : "Copy summary"}
               </button>
+              <button
+                type="button"
+                onClick={() => void handleCopyShareLink()}
+                className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700"
+              >
+                Copy share link
+              </button>
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/50 bg-slate-950 p-6 text-sm leading-7 text-slate-200 shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
+          <div
+            className="rounded-[2rem] border border-white/50 bg-slate-950 p-6 text-sm leading-7 text-slate-200 shadow-[0_24px_80px_rgba(15,23,42,0.14)]"
+            data-reveal="card"
+          >
             <p className="font-semibold text-white">Pilot hook</p>
             <p className="mt-3">
               This result is designed to support an internal conversation about the next 30 days, not just label maturity.
@@ -277,7 +344,10 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+          <div
+            className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
+            data-reveal="card"
+          >
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Rationale</p>
             <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
               {activeSession.resultModel.drlRationale.thresholdNotes.map((item) => (

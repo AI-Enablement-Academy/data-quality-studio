@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageShell } from "@/components/diagnostics/chrome";
+import { RecentReports } from "@/components/diagnostics/recent-reports";
 
 export default function DRLPage() {
   return (
@@ -41,6 +42,8 @@ export default function DRLPage() {
           </p>
         </aside>
       </div>
+
+      <RecentReports productType="drl" />
     </PageShell>
   );
 }
