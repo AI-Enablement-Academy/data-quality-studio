@@ -24,7 +24,8 @@
 4. Answer deterministic questions
 5. Optionally upload CSV evidence and paste notes
 6. Generate a report
-7. Export via print or JSON download
+7. Ask follow-up questions in AI mode or deterministic mode
+8. Export via print or JSON download
 
 ## Architecture
 - `src/lib/diagnostics/types.ts`
@@ -37,8 +38,12 @@
   - deterministic evidence summarization
 - `src/lib/diagnostics/engine.ts`
   - root scoring, confidence, DRL banding, action plan composition
+- `src/lib/diagnostics/deterministic-chat.ts`
+  - browser-only report assistant fallback
 - `src/lib/diagnostics/storage.ts`
   - browser-local draft and result persistence
+- `src/app/api/chat/route.ts`
+  - server-side Groq proxy using env-backed secrets only
 - `src/components/diagnostics/*`
   - shared product UI, assessment flow, and results rendering
 
@@ -51,3 +56,4 @@
 - Deploy on Vercel
 - Set `GROQ_API_KEY` and `GROQ_MODEL` in project environment variables
 - The server route is responsible for Groq requests so the key never reaches the client
+- If Groq rate-limits, the UI shows a countdown and keeps deterministic chat available
