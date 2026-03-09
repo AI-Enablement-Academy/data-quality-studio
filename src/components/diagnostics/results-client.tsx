@@ -2,13 +2,21 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { AssistantChat } from "@/components/diagnostics/assistant-chat";
 import { productConfigs } from "@/lib/diagnostics/product-config";
-import { loadResult } from "@/lib/diagnostics/storage";
+import { loadResultSnapshot, parseResultSnapshot } from "@/lib/diagnostics/storage";
 import { trackEvent } from "@/lib/diagnostics/tracking";
 import { AssessmentSession, ProductType, RootConditionScore } from "@/lib/diagnostics/types";
+
+function readStoredSessionSnapshot(productType: ProductType, source: string | null) {
+  const nextSnapshot = loadResultSnapshot(productType);
+  if (!nextSnapshot && productType === "drl" && source === "dmm") {
+    return loadResultSnapshot("dmm");
+  }
+  return nextSnapshot;
+}
 
 function severityTone(score: number) {
   if (score >= 3) {
@@ -57,38 +65,38 @@ function BlockerCard({ blocker }: { blocker: RootConditionScore }) {
 export function ResultsClient({ productType }: { productType: ProductType }) {
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
-  const [session, setSession] = useState<AssessmentSession | null | undefined>(undefined);
   const config = productConfigs[productType];
   const source = searchParams.get("source");
-
-  useEffect(() => {
-    function readSession() {
-      const nextSession = loadResult(productType);
-      if (!nextSession && productType === "drl" && source === "dmm") {
-        return loadResult("dmm");
+  const sessionSnapshot = useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === "undefined") {
+        return () => undefined;
       }
-      return nextSession;
+
+      const watchedKeys =
+        productType === "drl" && source === "dmm"
+          ? [`diagnostics:result:${productType}`, "diagnostics:result:dmm"]
+          : [`diagnostics:result:${productType}`];
+
+      function handleStorage(event: StorageEvent) {
+        if (!event.key || watchedKeys.includes(event.key)) {
+          onStoreChange();
+        }
+      }
+
+      window.addEventListener("storage", handleStorage);
+      return () => window.removeEventListener("storage", handleStorage);
+    },
+    () => readStoredSessionSnapshot(productType, source),
+    () => null,
+  );
+  const session = useMemo<AssessmentSession | null>(() => {
+    if (!sessionSnapshot) {
+      return null;
     }
 
-    setSession(readSession());
-
-    function handleStorage(event: StorageEvent) {
-      if (!event.key || event.key.includes(`diagnostics:result:${productType}`)) {
-        setSession(readSession());
-      }
-    }
-
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, [productType, source]);
-
-  if (session === undefined) {
-    return (
-      <div className="rounded-[2rem] border border-white/50 bg-white/90 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-        <h2 className="text-2xl font-semibold text-slate-950">Loading report…</h2>
-      </div>
-    );
-  }
+    return parseResultSnapshot(sessionSnapshot);
+  }, [sessionSnapshot]);
 
   if (!session) {
     return (
