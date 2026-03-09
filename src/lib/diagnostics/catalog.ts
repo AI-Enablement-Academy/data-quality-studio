@@ -10,81 +10,81 @@ export const rootConditions: RootConditionDefinition[] = [
     key: "multiple_data_sources",
     title: "Multiple Data Sources as Conflicting Information",
     summary:
-      "The same workforce signal exists in more than one system and the values do not reconcile cleanly.",
+      "Organisations often maintain similar workforce data across different systems that may contain varying values for similar data points.",
     drl7Expectation:
-      "A DRL 7 workflow has an explicit source-of-truth policy and systematic reconciliation rules.",
+      "At DRL 7, systematic data integration eliminates conflicts between multiple sources through coordinated Data-as-a-Product Manager (DPM) management.",
   },
   {
     key: "subjective_judgement",
     title: "Subjective Judgement in Data Production",
     summary:
-      "Human judgement creates variability that later gets treated as if it were objective measurement.",
+      "Human interpretation and decision-making in data collection processes may introduce variability that affects analytical consistency.",
     drl7Expectation:
-      "A DRL 7 workflow uses structured evidence capture and standardized assessment criteria.",
+      "At DRL 7, structured collection protocols reduce subjective bias through standardised assessment instruments.",
   },
   {
     key: "resource_limitations",
     title: "Resource Limitations Affecting Data Access",
     summary:
-      "Infrastructure, staffing, or workflow constraints limit reliable access to the information required.",
+      "Constraints on infrastructure or processing capability may limit access to comprehensive information sets.",
     drl7Expectation:
-      "A DRL 7 workflow has enough tooling and ownership to deliver data without repeated fire drills.",
+      "At DRL 7, strategic infrastructure investment ensures analytics and AI systems can access comprehensive information efficiently.",
   },
   {
     key: "security_access_balance",
     title: "Security and Accessibility Balance Considerations",
     summary:
-      "The balance between access and protection creates operational drag or trust gaps.",
+      "The tension between data protection and analytical access creates implementation challenges.",
     drl7Expectation:
-      "A DRL 7 workflow has access rules that are explicit, repeatable, and compatible with analysis.",
+      "At DRL 7, balanced security and access is achieved through systematic information product design that maintains protection whilst enabling analysis.",
   },
   {
     key: "diverse_coding_systems",
     title: "Diverse Coding Systems Across Functions",
     summary:
-      "Functions use competing labels, taxonomies, or hierarchies for the same workforce concepts.",
+      "Different departments may use varying terminology, classification systems, or data structures for similar concepts.",
     drl7Expectation:
-      "A DRL 7 workflow uses standardized coding and documented translation rules across systems.",
+      "At DRL 7, standardised cross-functional frameworks eliminate coding conflicts through DPM coordination.",
   },
   {
     key: "complex_representation",
     title: "Complex Data Representation Challenges",
     summary:
-      "Important signals live in free text, vendor-specific formats, or structures that are hard to compare.",
+      "Data exists in varied formats, from structured to unstructured, which presents different analytical possibilities.",
     drl7Expectation:
-      "A DRL 7 workflow translates qualitative or complex signals into machine-readable structure.",
+      "At DRL 7, structured qualitative collection translates human values, decisions, and behaviours into standardised machine-readable data.",
   },
   {
     key: "volume_processing",
     title: "Data Volume and Processing Relationships",
     summary:
-      "Data quantity creates processing drag without producing enough decision-grade signal.",
+      "The relationship between information quantity and processing capability creates analytical trade-offs.",
     drl7Expectation:
-      "A DRL 7 workflow emphasizes designed signal quality over indiscriminate collection volume.",
+      "At DRL 7, focused collection strategy emphasises quality over volume through systematic design.",
   },
   {
     key: "input_standards",
     title: "Data Input Standards and User Behavior Patterns",
     summary:
-      "Collection rules are weak or routinely bypassed, so variability is introduced at the point of entry.",
+      "The interaction between formal data collection requirements and actual user behaviour often creates implementation variability.",
     drl7Expectation:
-      "A DRL 7 workflow enforces clear input standards without making the process unusable.",
+      "At DRL 7, systematic input standards balance usability with consistency through TDQM principles.",
   },
   {
     key: "evolving_requirements",
     title: "Evolving Information Requirements",
     summary:
-      "The decision need has moved but collection design, business rules, and metrics have not kept up.",
+      "Organisational needs and analytical objectives change over time, creating misalignment between historical collection methods and current analytical requirements.",
     drl7Expectation:
-      "A DRL 7 workflow is versioned, reviewed, and adapted when decision requirements change.",
+      "At DRL 7, adaptive information products evolve with changing analytical requirements through continuous improvement.",
   },
   {
     key: "system_integration",
     title: "System Integration and Information Architecture",
     summary:
-      "Distributed systems and weak architecture make it hard to access a coherent data product.",
+      "The relationship between distributed information systems and comprehensive analytical access presents architectural considerations.",
     drl7Expectation:
-      "A DRL 7 workflow has designed interfaces, ownership, and architecture that support analysis directly.",
+      "At DRL 7, integrated system architecture provides comprehensive data access through systematic information product design.",
   },
 ];
 
@@ -92,8 +92,8 @@ export const drlSignals: DRLSignalDefinition[] = [
   { key: "manual_collection_risk", title: "Manual collection risk", direction: "risk" },
   { key: "digital_foundation", title: "Digital collection foundation", direction: "maturity" },
   { key: "byproduct_dependence", title: "By-product dependence", direction: "risk" },
-  { key: "data_product_discipline", title: "Data-as-product discipline", direction: "maturity" },
-  { key: "dpm_ownership", title: "DPM-style ownership", direction: "maturity" },
+  { key: "data_product_discipline", title: "Information Product / DAP discipline", direction: "maturity" },
+  { key: "dpm_ownership", title: "DPM coordination", direction: "maturity" },
   { key: "tdqm_discipline", title: "TDQM-style quality discipline", direction: "maturity" },
   { key: "structured_ai_readiness", title: "Structured AI readiness", direction: "maturity" },
   { key: "advanced_ai_integration", title: "Advanced AI integration", direction: "maturity" },
