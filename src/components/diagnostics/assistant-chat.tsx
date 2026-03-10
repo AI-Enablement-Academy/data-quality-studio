@@ -32,6 +32,7 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
   const [retryUntil, setRetryUntil] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [liveMessage, setLiveMessage] = useState("");
 
   useEffect(() => {
     if (!retryUntil) {
@@ -65,10 +66,12 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
     const nextUserMessage: Message = { role: "user", content: prompt };
     setMessages((current) => [...current, nextUserMessage]);
     setDraft("");
+    setLiveMessage("Question sent.");
 
     if (mode === "deterministic") {
       const reply = getDeterministicChatReply(session, prompt);
       setMessages((current) => [...current, { role: "assistant", content: reply }]);
+      setLiveMessage("Deterministic reply ready.");
       return;
     }
 
@@ -80,11 +83,13 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
           content: `Groq is temporarily rate-limited. Try again in ${countdown}s, or switch to deterministic mode now.`,
         },
       ]);
+      setLiveMessage(`Groq is rate-limited. Try again in ${countdown} seconds, or use deterministic mode.`);
       return;
     }
 
     setIsLoading(true);
     setStatusMessage(null);
+    setLiveMessage("AI response in progress.");
 
     try {
       const response = await fetch("/api/chat", {
@@ -115,6 +120,7 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
             content: `${payload.message ?? "Groq is rate-limited right now."} I switched you to deterministic mode so you can keep using the app immediately.`,
           },
         ]);
+        setLiveMessage(`Groq is rate-limited. Switched to deterministic mode for ${retryAfterSeconds} seconds.`);
         return;
       }
 
@@ -127,6 +133,7 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
             content: `${payload.message ?? "The AI assistant is unavailable right now."} Deterministic mode is still available.`,
           },
         ]);
+        setLiveMessage(payload.message ?? "AI assistant unavailable. Deterministic mode is still available.");
         return;
       }
 
@@ -137,6 +144,7 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
           content: payload.output ?? "No response returned.",
         },
       ]);
+      setLiveMessage("AI reply ready.");
     } catch {
       setStatusMessage("The AI assistant is unavailable right now. Deterministic mode still works.");
       setMessages((current) => [
@@ -147,6 +155,7 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
             "The AI assistant is unavailable right now. Deterministic mode still works and uses the report only.",
         },
       ]);
+      setLiveMessage("AI assistant unavailable. Deterministic mode still works.");
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +163,9 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
 
   return (
     <section className="rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+      <div aria-live="polite" className="sr-only">
+        {liveMessage}
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Chat guide</p>
@@ -163,6 +175,7 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
           <button
             type="button"
             onClick={() => setMode("ai")}
+            aria-pressed={mode === "ai"}
             className={`rounded-full px-4 py-2 text-sm transition ${
               mode === "ai" ? "bg-slate-950 text-white" : "text-slate-600"
             }`}
@@ -172,6 +185,7 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
           <button
             type="button"
             onClick={() => setMode("deterministic")}
+            aria-pressed={mode === "deterministic"}
             className={`rounded-full px-4 py-2 text-sm transition ${
               mode === "deterministic" ? "bg-slate-950 text-white" : "text-slate-600"
             }`}
@@ -184,6 +198,9 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
       <p className="mt-4 text-sm leading-7 text-slate-600">
         AI mode uses Groq on the server with your report context only. Deterministic mode never leaves the browser.
       </p>
+      <div className="mt-4 rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-700">
+        Do not paste PII, confidential employee data, or privileged material into the chat. AI replies can be wrong or incomplete, and they are not legal, compliance, or employment advice.
+      </div>
 
       {statusMessage ? (
         <div className="mt-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-950">
@@ -205,7 +222,14 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
         ))}
       </div>
 
-      <div className="mt-5 max-h-[420px] space-y-3 overflow-y-auto rounded-[1.5rem] bg-slate-50 p-4">
+      <div
+        aria-atomic="false"
+        aria-busy={isLoading}
+        aria-live="polite"
+        aria-relevant="additions text"
+        className="mt-5 max-h-[420px] space-y-3 overflow-y-auto rounded-[1.5rem] bg-slate-50 p-4"
+        role="log"
+      >
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
@@ -226,15 +250,19 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
       </div>
 
       <div className="mt-5 flex flex-col gap-3">
+        <label className="sr-only" htmlFor="report-assistant-input">
+          Ask the report assistant a question
+        </label>
         <textarea
+          id="report-assistant-input"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           rows={4}
           placeholder="Ask about the report, the DRL band, the gap to DRL 7, or next actions."
-          className="w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4 text-slate-900 outline-none"
+          className="w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4 text-slate-900"
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
             {mode === "ai" ? "Server-side Groq mode" : "Local deterministic mode"}
           </p>
           <button

@@ -22,6 +22,7 @@ This project ships two public tools from one shared Next.js codebase:
 - Use-case mode as the default, organization mode as directional
 - Exportable artifacts instead of generic dashboard filler
 - Optional AI assist must never override deterministic scores
+- Alpha privacy and claim boundaries are explicit in the product and docs
 
 ## Routes
 
@@ -49,6 +50,18 @@ pnpm test
 pnpm lint
 pnpm build
 ```
+
+## Method and alpha boundaries
+
+See `/method` in the app for the live product statement of method, privacy, and alpha limitations.
+
+In short:
+- DMM and DRL scoring remain deterministic
+- AI chat is optional and can only interpret the finished report
+- report history is stored in the current browser during the alpha
+- raw CSV uploads and pasted evidence notes are not retained in draft autosave
+- share links carry a portable report snapshot in the URL fragment
+- the app is improving accessibility and security, but it does not claim formal WCAG 2.2 AA or OWASP certification yet
 
 ## Hosting
 
@@ -94,9 +107,13 @@ Do not commit `.env.local` or any real provider key.
   - browser-only fallback assistant based on the report model
 - `src/app/api/chat/route.ts`
   - server-side Groq integration for optional AI assist
+- `src/app/api/report-pdf/route.ts`
+  - server-side branded PDF export
 - `src/components/diagnostics/*`
-  - shared product UI, wizard flow, and results rendering
+  - shared product UI, wizard flow, charts, PDF document, and results rendering
 
 ## Open source
 
 This repository is intended to be public and openly inspectable. The scoring model is deterministic by design, so users can challenge, inspect, and improve the logic without depending on a black-box AI layer. The optional assistant runs through server-side env configuration only, so no provider secrets are exposed in the client bundle.
+
+Built by [Adam Kovacs](https://www.linkedin.com/in/adambkovacs/) x [AI Enablement Academy](https://aienablement.academy/). Free resource, limited public alpha.

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useCases } from "@/lib/diagnostics/catalog";
 import { buildResultModel, createAssessmentSession } from "@/lib/diagnostics/engine";
@@ -21,6 +21,8 @@ import {
 } from "@/lib/diagnostics/types";
 
 const steps = ["Context", "Assessment", "Evidence", "Review"];
+const MAX_CSV_FILES = 3;
+const MAX_CSV_BYTES = 2 * 1024 * 1024;
 
 function getDefaultState(productType: ProductType): AssessmentInput {
   return {
@@ -54,6 +56,8 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [state, setState] = useState<AssessmentInput>(getDefaultState(productType));
   const [unsupportedFiles, setUnsupportedFiles] = useState<string[]>([]);
+  const [liveMessage, setLiveMessage] = useState("");
+  const stepHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   useEffect(() => {
     const draft = loadDraft(productType);
@@ -62,6 +66,16 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
     }
     trackEvent("assessment_started", { productType });
   }, [productType]);
+
+  useEffect(() => {
+    const heading = stepHeadingRef.current;
+    if (!heading) {
+      return;
+    }
+
+    heading.focus();
+    setLiveMessage(`Step ${stepIndex + 1} of ${steps.length}: ${steps[stepIndex]}.`);
+  }, [stepIndex]);
 
   const questions = getQuestions(productType, state.scopeType);
   const completionCount = getCompletionCount(questions, state.answers);
@@ -91,8 +105,18 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
     const rejected: string[] = [];
 
     for (const file of Array.from(files)) {
+      if (accepted.length >= MAX_CSV_FILES) {
+        rejected.push(`${file.name} (too many files)`);
+        continue;
+      }
+
       if (!file.name.toLowerCase().endsWith(".csv")) {
         rejected.push(file.name);
+        continue;
+      }
+
+      if (file.size > MAX_CSV_BYTES) {
+        rejected.push(`${file.name} (over 2 MB)`);
         continue;
       }
 
@@ -103,6 +127,9 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
     }
 
     setUnsupportedFiles(rejected);
+    if (rejected.length > 0) {
+      setLiveMessage(`Unsupported files ignored: ${rejected.join(", ")}.`);
+    }
     updateState({
       ...state,
       evidence: {
@@ -137,12 +164,17 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <section className="space-y-6 rounded-[2rem] border border-white/50 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-        <div className="flex flex-wrap items-center gap-3">
+        <div aria-live="polite" className="sr-only">
+          {liveMessage}
+        </div>
+
+        <div aria-label="Assessment steps" className="flex flex-wrap items-center gap-3">
           {steps.map((step, index) => (
             <button
               key={step}
               type="button"
               onClick={() => setStepIndex(index)}
+              aria-current={index === stepIndex ? "step" : undefined}
               className={`rounded-full px-4 py-2 text-sm transition ${
                 index === stepIndex
                   ? "bg-slate-950 text-white"
@@ -157,7 +189,9 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
         {stepIndex === 0 ? (
           <div className="space-y-8">
             <div className="space-y-3">
-              <h2 className="text-2xl font-semibold text-slate-950">Set the diagnostic context</h2>
+              <h2 ref={stepHeadingRef} tabIndex={-1} className="text-2xl font-semibold text-slate-950">
+                Set the diagnostic context
+              </h2>
               <p className="max-w-2xl text-sm leading-7 text-slate-600">
                 Use case mode is the default because it produces stronger, more defensible results. Organization mode is directional.
               </p>
@@ -215,7 +249,7 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
                       useCaseKey: event.target.value as UseCaseKey,
                     })
                   }
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900 outline-none ring-0"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900"
                 >
                   {useCases.map((useCase) => (
                     <option key={useCase.key} value={useCase.key}>
@@ -239,7 +273,9 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
           <div className="space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-semibold text-slate-950">Answer the diagnostic questions</h2>
+                <h2 ref={stepHeadingRef} tabIndex={-1} className="text-2xl font-semibold text-slate-950">
+                  Answer the diagnostic questions
+                </h2>
                 <p className="text-sm leading-7 text-slate-600">
                   {completionCount} of {questions.length} answered.
                 </p>
@@ -269,7 +305,7 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
                       return (
                         <label
                           key={option.value}
-                          className={`cursor-pointer rounded-[1.25rem] border px-4 py-4 transition ${
+                          className={`cursor-pointer rounded-[1.25rem] border px-4 py-4 transition has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-amber-500 ${
                             isChecked
                               ? "border-slate-950 bg-slate-950 text-white"
                               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
@@ -299,9 +335,14 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
         {stepIndex === 2 ? (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-950">Optional evidence inputs</h2>
+              <h2 ref={stepHeadingRef} tabIndex={-1} className="text-2xl font-semibold text-slate-950">
+                Optional evidence inputs
+              </h2>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
                 Evidence improves specificity and confidence. It does not override the scoring model.
+              </p>
+              <p className="mt-3 max-w-2xl rounded-[1.25rem] border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-7 text-sky-950">
+                Privacy note: CSV contents and pasted notes stay in this tab only. Draft autosave keeps your assessment answers, but not the raw evidence itself. Do not upload PII, confidential HR records, or anything you are not authorized to use here.
               </p>
             </div>
 
@@ -351,7 +392,7 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
                 }
                 rows={5}
                 placeholder="Paste metric logic, exclusions, or definition disputes here."
-                className="w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4 text-slate-900 outline-none"
+                className="w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4 text-slate-900"
               />
             </div>
 
@@ -373,7 +414,7 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
                 }
                 rows={6}
                 placeholder="Describe where the team stitches data, rewrites caveats, or loses trust."
-                className="w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4 text-slate-900 outline-none"
+                className="w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4 text-slate-900"
               />
             </div>
           </div>
@@ -382,7 +423,9 @@ export function AssessmentFlow({ productType }: { productType: ProductType }) {
         {stepIndex === 3 ? (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-950">Review before generating the report</h2>
+              <h2 ref={stepHeadingRef} tabIndex={-1} className="text-2xl font-semibold text-slate-950">
+                Review before generating the report
+              </h2>
               <p className="mt-2 text-sm leading-7 text-slate-600">
                 This preview uses the same deterministic engine as the final report.
               </p>

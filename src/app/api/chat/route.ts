@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  consumeChatRateLimit,
+  getClientIdentifier,
+  validateRequestSize,
+  validateChatBody,
+  validateTrustedOrigin,
+} from "@/lib/diagnostics/chat-guard";
 import { AssessmentSession } from "@/lib/diagnostics/types";
 
 export const runtime = "nodejs";
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
 
 interface GroqResponsePayload {
   output?: Array<{
@@ -93,13 +95,73 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = (await request.json()) as {
-    messages: ChatMessage[];
-    session: AssessmentSession;
-  };
+  if (!validateTrustedOrigin(request.nextUrl.toString(), request.headers)) {
+    return NextResponse.json(
+      {
+        errorType: "forbidden",
+        message: "Cross-origin assistant requests are not allowed.",
+      },
+      {
+        status: 403,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  }
 
-  const context = buildContext(body.session);
-  const conversation = body.messages
+  if (!validateRequestSize(request.headers)) {
+    return NextResponse.json(
+      {
+        errorType: "payload_too_large",
+        message: "The assistant request payload is too large.",
+      },
+      {
+        status: 413,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  }
+
+  const rateLimit = consumeChatRateLimit(getClientIdentifier(request.headers));
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      {
+        errorType: "rate_limited",
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+        message: "Too many assistant requests from this client. Try again after the countdown or switch to deterministic mode.",
+      },
+      {
+        status: 429,
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+        },
+      },
+    );
+  }
+
+  const body = await request.json().catch(() => null);
+  const validation = validateChatBody(body);
+  if (!validation.ok) {
+    return NextResponse.json(
+      {
+        errorType: "invalid_request",
+        message: validation.message,
+      },
+      {
+        status: 400,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  }
+
+  const context = buildContext(validation.value.session);
+  const conversation = validation.value.messages
     .map((message) => ({
       role: message.role,
       content: [{ type: "input_text", text: message.content }],
@@ -137,7 +199,13 @@ export async function POST(request: NextRequest) {
           payload?.error?.message ??
           "Groq is rate-limited right now. Try again after the countdown or use deterministic chat mode.",
       },
-      { status: 429 },
+      {
+        status: 429,
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": String(retryAfterSeconds),
+        },
+      },
     );
   }
 
@@ -150,7 +218,12 @@ export async function POST(request: NextRequest) {
           payload?.error?.message ??
           "The Groq request failed. Use deterministic chat mode for now and try AI again later.",
       },
-      { status: response.status },
+      {
+        status: response.status,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
     );
   }
 
@@ -158,5 +231,9 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     output: extractOutputText(payload) || "No response text was returned by the provider.",
     model,
+  }, {
+    headers: {
+      "Cache-Control": "no-store",
+    },
   });
 }

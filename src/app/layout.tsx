@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Sora } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { MotionRoot } from "@/components/diagnostics/motion-root";
 import "./globals.css";
 
-const sora = Sora({
-  variable: "--font-sora",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   weight: ["400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +28,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${sora.variable} ${plexMono.variable} antialiased`}>{children}</body>
+      <body className={`${inter.variable} ${jetBrainsMono.variable} antialiased`}>
+        <MotionRoot>{children}</MotionRoot>
+      </body>
     </html>
   );
 }
