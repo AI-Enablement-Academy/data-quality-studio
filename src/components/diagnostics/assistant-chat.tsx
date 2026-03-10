@@ -171,28 +171,34 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Chat guide</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">Report assistant</h2>
         </div>
-        <div className="flex gap-2 rounded-full bg-slate-100 p-1">
-          <button
-            type="button"
-            onClick={() => setMode("ai")}
-            aria-pressed={mode === "ai"}
-            className={`rounded-full px-4 py-2 text-sm transition ${
-              mode === "ai" ? "bg-slate-950 text-white" : "text-slate-600"
-            }`}
-          >
-            AI
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("deterministic")}
-            aria-pressed={mode === "deterministic"}
-            className={`rounded-full px-4 py-2 text-sm transition ${
-              mode === "deterministic" ? "bg-slate-950 text-white" : "text-slate-600"
-            }`}
-          >
-            Deterministic
-          </button>
-        </div>
+        <fieldset className="min-w-[220px]">
+          <legend className="sr-only">Chat mode</legend>
+          <div className="flex gap-2 rounded-full bg-slate-100 p-1">
+            {[
+              { value: "ai" as const, label: "AI" },
+              { value: "deterministic" as const, label: "Deterministic" },
+            ].map((option) => {
+              const isChecked = mode === option.value;
+              return (
+                <label
+                  key={option.value}
+                  className={`flex-1 cursor-pointer rounded-full px-4 py-2 text-center text-sm transition has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-amber-500 ${
+                    isChecked ? "bg-slate-950 text-white" : "text-slate-600"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="chat-mode"
+                    className="sr-only"
+                    checked={isChecked}
+                    onChange={() => setMode(option.value)}
+                  />
+                  {option.label}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
       </div>
 
       <p className="mt-4 text-sm leading-7 text-slate-600">
@@ -239,6 +245,7 @@ export function AssistantChat({ session }: { session: AssessmentSession }) {
                 : "ml-auto max-w-[85%] bg-slate-950 text-white"
             }`}
           >
+            <p className="sr-only">{message.role === "assistant" ? "Assistant message" : "Your message"}</p>
             {message.content}
           </div>
         ))}

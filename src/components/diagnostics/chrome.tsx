@@ -66,6 +66,7 @@ function FooterIconGlobe() {
 export function DiagnosticsNav({ activeProduct }: { activeProduct?: ProductType }) {
   return (
     <nav
+      aria-label="Primary"
       className="flex flex-wrap items-center justify-between gap-4 rounded-full border border-slate-200/80 bg-white/82 px-4 py-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur"
       data-reveal="nav"
     >

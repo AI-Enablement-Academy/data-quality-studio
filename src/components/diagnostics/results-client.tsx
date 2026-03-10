@@ -361,7 +361,9 @@ export function ResultsClient({ productType }: { productType: ProductType }) {
               <button
                 type="button"
                 onClick={() => void handleDownloadPdf()}
-                className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(15,23,42,0.16)]"
+                aria-busy={isGeneratingPdf}
+                disabled={isGeneratingPdf}
+                className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(15,23,42,0.16)] disabled:cursor-not-allowed disabled:bg-slate-400"
               >
                 {isGeneratingPdf ? "Generating PDF..." : "Download branded PDF"}
               </button>

@@ -64,8 +64,10 @@
 - UI refinement pass covering richer DMM/DRL overview pages, clearer footer ownership links, private-by-default share messaging, and cleaner recent-report history layout
 - Site-level IA refinement so users can immediately see DMM and DRL as two separate areas with different jobs
 - Home-page card layout tightened so spacing, padding, and CTA alignment stay consistent across the DMM and DRL hero cards
+- WCAG hardening pass strengthened stepper semantics, progress indication, radio-group behavior, chart-table structure, and action-state communication on report/export controls
 - source-alignment pass against the October 2025 white paper for Ten Root Conditions, DRL 1-7 language, and DPM / TDQM framing
 - Lighthouse baseline on the local home page with accessibility, best-practices, and SEO at 100 in the tested run, and performance lower on dev-server conditions
+- Additional Lighthouse route check on `/dmm/start` now reaches 100 accessibility after the stepper and choice-group fixes
 
 ## Validation commands
 - `pnpm test`

@@ -258,14 +258,14 @@ export function ReportCharts({ session }: { session: AssessmentSession }) {
             <caption className="sr-only">Tabular fallback for root-condition severity.</caption>
             <thead className="border-b border-slate-200 bg-white">
               <tr>
-                <th className="px-4 py-3 font-semibold">Root condition</th>
-                <th className="px-4 py-3 font-semibold">Severity</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Root condition</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Severity</th>
               </tr>
             </thead>
             <tbody>
               {rootScores.map((item) => (
                 <tr key={item.key} className="border-b border-slate-200 last:border-b-0">
-                  <td className="px-4 py-3">{item.title}</td>
+                  <th scope="row" className="px-4 py-3 font-medium">{item.title}</th>
                   <td className="px-4 py-3">{item.severityLabel}</td>
                 </tr>
               ))}
@@ -336,8 +336,8 @@ export function ReportCharts({ session }: { session: AssessmentSession }) {
               <caption className="sr-only">Tabular fallback for readiness profile signals.</caption>
               <thead className="border-b border-white/10 text-slate-300">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Signal</th>
-                  <th className="px-4 py-3 font-semibold">Current state</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Signal</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Current state</th>
                 </tr>
               </thead>
               <tbody>
@@ -350,7 +350,7 @@ export function ReportCharts({ session }: { session: AssessmentSession }) {
                   ["Advanced AI integration", normalizeSignalPercent(signalScores.advanced_ai_integration)],
                 ].map(([label, value]) => (
                   <tr key={label} className="border-b border-white/10 last:border-b-0">
-                    <td className="px-4 py-3">{label}</td>
+                    <th scope="row" className="px-4 py-3 font-medium">{label}</th>
                     <td className="px-4 py-3">{value}%</td>
                   </tr>
                 ))}

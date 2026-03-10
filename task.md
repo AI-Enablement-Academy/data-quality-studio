@@ -39,6 +39,7 @@ The suite must use one shared codebase, deterministic scoring, and optional serv
 - Open-source alpha footer added with attribution and limited-API note
 - Footer, overview pages, recent-report history, and report export rail redesigned to clarify private-by-default sharing and improve visual hierarchy
 - Site-wide product-area strip and clearer navigation labels added so DMM and DRL read as two distinct surfaces, not just two acronyms
+- WCAG hardening pass added a labeled primary nav, semantic step navigation, a real progressbar, proper single-choice radio groups for scope and chat mode, stronger form descriptions, and improved chart table semantics
 - Domain tests passing
 - Production build passing
 
